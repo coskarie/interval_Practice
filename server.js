@@ -1,20 +1,15 @@
 const express = require('express');
+const path = require('path');
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(express.static('.')); // HTML, JS 파일을 서빙
+// 현재 폴더의 파일들을 정적 파일로 서빙
+app.use(express.static(__dirname));
 
-// 문제 데이터 예시 API
-app.get('/api/question', (req, res) => {
-    const questions = [
-        { note: 'C4', name: '도' },
-        { note: 'E4', name: '미' },
-        { note: 'G4', name: '솔' }
-    ];
-    const random = questions[Math.floor(Math.random() * questions.length)];
-    res.json(random);
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+    console.log(`Server is running at http://localhost:${port}`);
 });
