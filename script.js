@@ -33,13 +33,22 @@ function drawStaff() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 1;
+
+    // 1. 오선 그리기 (70, 80, 90, 100, 110px 위치)
     for (let i = 0; i < 5; i++) {
         let y = 70 + (i * 10);
-        ctx.beginPath(); ctx.moveTo(50, y); ctx.lineTo(450, y); ctx.stroke();
+        ctx.beginPath(); 
+        ctx.moveTo(50, y); 
+        ctx.lineTo(450, y); 
+        ctx.stroke();
     }
-    ctx.font = '45px serif';
+
+    // 2. 높은음자리표 위치 정밀 조정
+    // 폰트 크기를 50으로 키우고, Y좌표를 112 정도로 잡으면 
+    // 높은음자리표의 '배 부분'이 두 번째 줄(100px)에 예쁘게 걸립니다.
+    ctx.font = '50px serif'; 
     ctx.fillStyle = "black";
-    ctx.fillText('𝄞', 60, 100);
+    ctx.fillText('𝄞', 55, 112); 
 }
 
 function drawNote(x, y, hasLedger) {
