@@ -5,7 +5,6 @@ const resultDisplay = document.getElementById('resultMessage');
 
 let currentAnswer = "";
 
-// 음표 데이터 (위치와 반음 수)
 const notes = [
     { name: "도", y: 130, semitone: 0, ledger: true },
     { name: "레", y: 120, semitone: 2, ledger: false },
@@ -17,25 +16,27 @@ const notes = [
     { name: "도", y: 60, semitone: 12, ledger: false }
 ];
 
-// 음정 이름 매핑
 const intervals = {
     0: "완전1도", 1: "단2도", 2: "장2도", 3: "단3도", 4: "장3도",
     5: "완전4도", 6: "증4도", 7: "완전5도", 8: "단6도", 9: "장6도",
     10: "단7도", 11: "장7도", 12: "완전8도"
 };
 
+// 엔터키 이벤트 리스너 추가
+input.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        checkAnswer();
+    }
+});
+
 function drawStaff() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 1;
-
-    // 오선 그리기
     for (let i = 0; i < 5; i++) {
         let y = 70 + (i * 10);
         ctx.beginPath(); ctx.moveTo(50, y); ctx.lineTo(450, y); ctx.stroke();
     }
-
-    // 높은음자리표
     ctx.font = '45px serif';
     ctx.fillStyle = "black";
     ctx.fillText('𝄞', 60, 115);
@@ -46,14 +47,7 @@ function drawNote(x, y, hasLedger) {
     ctx.beginPath();
     ctx.ellipse(x, y, 6, 4.5, Math.PI / -4, 0, Math.PI * 2);
     ctx.fill();
-
-    // 기둥
-    ctx.beginPath();
-    ctx.moveTo(x + 5, y);
-    ctx.lineTo(x + 5, y - 35);
-    ctx.stroke();
-
-    // 덧줄 (가온 도 위치)
+    ctx.beginPath(); ctx.moveTo(x + 5, y); ctx.lineTo(x + 5, y - 35); ctx.stroke();
     if (hasLedger) {
         ctx.beginPath(); ctx.moveTo(x - 12, y); ctx.lineTo(x + 12, y); ctx.stroke();
     }
@@ -62,35 +56,36 @@ function drawNote(x, y, hasLedger) {
 function nextQuestion() {
     drawStaff();
     resultDisplay.innerText = "";
+    resultDisplay.className = "";
     input.value = "";
     input.focus();
 
-    // 랜덤으로 두 음 선택
     let idx1 = Math.floor(Math.random() * notes.length);
     let idx2 = Math.floor(Math.random() * notes.length);
-    
-    // 두 음 정렬 (낮은 음이 먼저 오게)
+    if (idx1 === idx2) idx2 = (idx1 + 2) % notes.length;
+
     let low = notes[Math.min(idx1, idx2)];
     let high = notes[Math.max(idx1, idx2)];
 
     drawNote(180, low.y, low.ledger);
     drawNote(260, high.y, high.ledger);
 
-    // 반음 차이 계산 후 정답 설정
     let diff = high.semitone - low.semitone;
     currentAnswer = intervals[diff];
 }
 
 function checkAnswer() {
-    if (input.value.trim() === currentAnswer) {
-        resultDisplay.style.color = "#2ecc71";
+    const userAns = input.value.trim();
+    if (userAns === currentAnswer) {
         resultDisplay.innerText = "정답입니다! 🎉";
-        setTimeout(nextQuestion, 1500); // 1.5초 후 다음 문제
+        resultDisplay.className = "correct";
+        // 정답이면 0.8초 후 자동으로 다음 문제로 이동
+        setTimeout(nextQuestion, 800);
     } else {
-        resultDisplay.style.color = "#e74c3c";
-        resultDisplay.innerText = `땡! 정답은 '${currentAnswer}'입니다.`;
+        resultDisplay.innerText = "틀렸습니다.";
+        resultDisplay.className = "wrong";
+        input.select(); // 틀렸을 때 바로 다시 입력할 수 있게 텍스트 선택
     }
 }
 
-// 시작
 nextQuestion();
