@@ -4,37 +4,53 @@ const input = document.getElementById('answerInput');
 const resultDisplay = document.getElementById('resultMessage');
 
 let currentAnswer = "";
-let isQuestionActive = true; // 현재 문제가 진행 중인지 상태 확인
+let isQuestionActive = true;
 
-const noteNames = ["도", "레", "미", "파", "솔", "라", "시", "도", "레", "미", "파"];
-const startY = 130; 
+const noteNames = ["도", "레", "미", "파", "솔", "라", "시", "도", "레", "미", "파", "솔", "라", "시", "도"];
+const startY = 150; // 좌표 안정화를 위해 약간 조정
 
+// 반음 거리 계산 (미-파, 시-도 로직)
 function getSemitoneDistance(lowIdx, highIdx) {
     let distance = 0;
     for (let i = lowIdx; i < highIdx; i++) {
-        let currentStep = i % 7; 
-        if (currentStep === 2 || currentStep === 6) { // 미-파, 시-도
-            distance += 1;
-        } else {
-            distance += 2;
-        }
+        let step = i % 7;
+        distance += (step === 2 || step === 6) ? 1 : 2;
     }
     return distance;
 }
 
-const intervals = {
-    0: "완전1도", 1: "단2도", 2: "장2도", 3: "단3도", 4: "장3도",
-    5: "완전4도", 6: "증4도", 7: "완전5도", 8: "단6도", 9: "장6도",
-    10: "단7도", 11: "장7도", 12: "완전8도"
-};
+// 동음이명 처리를 포함한 정답 판별기
+function getIntervalName(lowIdx, highIdx, semitones) {
+    const degree = highIdx - lowIdx + 1; // 도수 계산 (예: 도-파는 4도)
 
-// 엔터키 제어 로직 수정
+    const intervalMap = {
+        1: { 0: "완전1도" },
+        2: { 1: "단2도", 2: "장2도" },
+        3: { 3: "단3도", 4: "장3도" },
+        4: { 5: "완전4도", 6: "증4도" },
+        5: { 6: "감5도", 7: "완전5도" },
+        6: { 8: "단6도", 9: "장6도" },
+        7: { 10: "단7도", 11: "장7도" },
+        8: { 12: "완전8도" },
+        9: { 13: "단9도", 14: "장9도" },
+        10: { 15: "단10도", 16: "장10도" },
+        11: { 17: "완전11도", 18: "증11도" },
+        12: { 18: "감12도", 19: "완전12도" },
+        13: { 20: "단13도", 21: "장13도" },
+        14: { 22: "단14도", 23: "장14도" },
+        15: { 24: "완전15도" }
+    };
+
+    return (intervalMap[degree] && intervalMap[degree][semitones]) || `${degree}도 (기타)`;
+}
+
 input.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
+        const val = input.value.trim();
         if (isQuestionActive) {
-            checkAnswer(); // 문제 풀기
+            if (val !== "") checkAnswer(); // 빈칸이면 엔터 무시
         } else {
-            nextQuestion(); // 정답 확인 후 다음 문제로
+            nextQuestion(); // 정답 확인 후 엔터치면 다음으로
         }
     }
 });
@@ -44,15 +60,15 @@ function drawStaff() {
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 1;
     for (let i = 0; i < 5; i++) {
-        let y = 80 + (i * 10); 
+        let y = 80 + (i * 10);
         ctx.beginPath(); ctx.moveTo(50, y); ctx.lineTo(450, y); ctx.stroke();
     }
     ctx.font = '50px serif';
     ctx.fillStyle = "black";
-    ctx.fillText('𝄞', 55, 122); 
+    ctx.fillText('𝄞', 55, 122);
 }
 
-function drawNote(x, y, isDo) {
+function drawNote(x, y, idx) {
     ctx.fillStyle = "black";
     ctx.beginPath();
     ctx.ellipse(x, y, 6, 4.5, Math.PI / -4, 0, Math.PI * 2);
@@ -61,8 +77,17 @@ function drawNote(x, y, isDo) {
     ctx.moveTo(x + 5, y);
     ctx.lineTo(x + 5, y - 35);
     ctx.stroke();
-    if (isDo && y === 130) {
-        ctx.beginPath(); ctx.moveTo(x - 12, y); ctx.lineTo(x + 12, y); ctx.stroke();
+
+    // 덧줄 로직 (도 밑으로, 라 위로 등)
+    if (y >= 130) { // 아래쪽 덧줄 (가온 도 등)
+        for (let j = 130; j <= y; j += 10) {
+            ctx.beginPath(); ctx.moveTo(x - 12, j); ctx.lineTo(x + 12, j); ctx.stroke();
+        }
+    }
+    if (y <= 70) { // 위쪽 덧줄 (높은 라 등)
+        for (let j = 70; j >= y; j -= 10) {
+            ctx.beginPath(); ctx.moveTo(x - 12, j); ctx.lineTo(x + 12, j); ctx.stroke();
+        }
     }
 }
 
@@ -70,13 +95,12 @@ function nextQuestion() {
     isQuestionActive = true;
     drawStaff();
     resultDisplay.innerText = "";
-    resultDisplay.className = "";
     input.value = "";
     input.focus();
 
     let idx1 = Math.floor(Math.random() * noteNames.length);
     let idx2 = Math.floor(Math.random() * noteNames.length);
-    while(idx1 === idx2) idx2 = (idx1 + 2) % noteNames.length;
+    while (Math.abs(idx1 - idx2) < 1) idx2 = Math.floor(Math.random() * noteNames.length);
 
     let lowIdx = Math.min(idx1, idx2);
     let highIdx = Math.max(idx1, idx2);
@@ -84,29 +108,26 @@ function nextQuestion() {
     let lowY = startY - (lowIdx * 5);
     let highY = startY - (highIdx * 5);
 
-    drawNote(180, lowY, lowIdx === 0);
-    drawNote(260, highY, highIdx === 0);
+    drawNote(180, lowY, lowIdx);
+    drawNote(260, highY, highIdx);
 
     let semitones = getSemitoneDistance(lowIdx, highIdx);
-    currentAnswer = intervals[semitones] || "범위 초과";
+    currentAnswer = getIntervalName(lowIdx, highIdx, semitones);
 
-    console.log(`[문제] ${noteNames[lowIdx]}-${noteNames[highIdx]} | 정답: ${currentAnswer}`);
+    console.log(`[문제] ${noteNames[lowIdx]}-${noteNames[highIdx]} (도수:${highIdx-lowIdx+1}, 반음:${semitones}) 정답: ${currentAnswer}`);
 }
 
 function checkAnswer() {
     const userAns = input.value.trim();
-    isQuestionActive = false; // 정답 확인 절차에 들어갔으므로 상태 변경
+    isQuestionActive = false;
 
     if (userAns === currentAnswer) {
         resultDisplay.innerText = "정답입니다! 🎉";
-        resultDisplay.className = "correct";
         resultDisplay.style.color = "#2ecc71";
         setTimeout(nextQuestion, 800);
     } else {
-        resultDisplay.innerText = `틀렸습니다. 정답은 '${currentAnswer}'입니다. (엔터를 누르면 다음 문제)`;
-        resultDisplay.className = "wrong";
+        resultDisplay.innerText = `틀렸습니다. 정답: ${currentAnswer} (엔터/버튼 클릭시 다음문제)`;
         resultDisplay.style.color = "#e74c3c";
-        input.value = ""; // 다음 입력을 위해 비워줌
     }
 }
 
