@@ -5,15 +5,20 @@ const resultDisplay = document.getElementById('resultMessage');
 
 let currentAnswer = "";
 
+// 5px 단위로 정밀 조정한 음표 데이터
+// y값이 110, 100, 90, 80, 70이면 '줄', 그 사이(105, 95...)면 '칸'입니다.
 const notes = [
-    { name: "도", y: 130, semitone: 0, ledger: true },
-    { name: "레", y: 120, semitone: 2, ledger: false },
-    { name: "미", y: 110, semitone: 4, ledger: false },
-    { name: "파", y: 100, semitone: 5, ledger: false },
-    { name: "솔", y: 90, semitone: 7, ledger: false },
-    { name: "라", y: 80, semitone: 9, ledger: false },
-    { name: "시", y: 70, semitone: 11, ledger: false },
-    { name: "도", y: 60, semitone: 12, ledger: false }
+    { name: "도(C4)", y: 130, semitone: 0, ledger: true },  // 가온 도 (덧줄)
+    { name: "레(D4)", y: 125, semitone: 2, ledger: false }, // 칸
+    { name: "미(E4)", y: 120, semitone: 4, ledger: false }, // 줄 (가장 아래)
+    { name: "파(F4)", y: 115, semitone: 5, ledger: false }, // 칸
+    { name: "솔(G4)", y: 110, semitone: 7, ledger: false }, // 줄
+    { name: "라(A4)", y: 105, semitone: 9, ledger: false }, // 칸
+    { name: "시(B4)", y: 100, semitone: 11, ledger: false },// 줄
+    { name: "도(C5)", y: 95,  semitone: 12, ledger: false },// 칸
+    { name: "레(D5)", y: 90,  semitone: 14, ledger: false },// 줄
+    { name: "미(E5)", y: 85,  semitone: 16, ledger: false },// 칸
+    { name: "파(F5)", y: 80,  semitone: 17, ledger: false } // 줄 (가장 위)
 ];
 
 const intervals = {
@@ -22,7 +27,6 @@ const intervals = {
     10: "단7도", 11: "장7도", 12: "완전8도"
 };
 
-// 엔터키 이벤트 리스너 추가
 input.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         checkAnswer();
@@ -34,21 +38,16 @@ function drawStaff() {
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 1;
 
-    // 1. 오선 그리기 (70, 80, 90, 100, 110px 위치)
+    // 오선 그리기 (높이 80~120 범위로 조정)
     for (let i = 0; i < 5; i++) {
-        let y = 70 + (i * 10);
-        ctx.beginPath(); 
-        ctx.moveTo(50, y); 
-        ctx.lineTo(450, y); 
-        ctx.stroke();
+        let y = 80 + (i * 10); 
+        ctx.beginPath(); ctx.moveTo(50, y); ctx.lineTo(450, y); ctx.stroke();
     }
 
-    // 2. 높은음자리표 위치 정밀 조정
-    // 폰트 크기를 50으로 키우고, Y좌표를 112 정도로 잡으면 
-    // 높은음자리표의 '배 부분'이 두 번째 줄(100px)에 예쁘게 걸립니다.
-    ctx.font = '50px serif'; 
+    // 높은음자리표 위치 (오선 위치 변경에 따른 y좌표 조정)
+    ctx.font = '50px serif';
     ctx.fillStyle = "black";
-    ctx.fillText('𝄞', 55, 112); 
+    ctx.fillText('𝄞', 55, 122); 
 }
 
 function drawNote(x, y, hasLedger) {
@@ -56,7 +55,14 @@ function drawNote(x, y, hasLedger) {
     ctx.beginPath();
     ctx.ellipse(x, y, 6, 4.5, Math.PI / -4, 0, Math.PI * 2);
     ctx.fill();
-    ctx.beginPath(); ctx.moveTo(x + 5, y); ctx.lineTo(x + 5, y - 35); ctx.stroke();
+
+    // 기둥 그리기 (보통 3옥타브 시(B4) 이상은 기둥을 아래로 그리지만, 우선 위로 통일)
+    ctx.beginPath();
+    ctx.moveTo(x + 5, y);
+    ctx.lineTo(x + 5, y - 35);
+    ctx.stroke();
+
+    // 덧줄 그리기 (y값이 130인 '도'에 해당)
     if (hasLedger) {
         ctx.beginPath(); ctx.moveTo(x - 12, y); ctx.lineTo(x + 12, y); ctx.stroke();
     }
@@ -69,18 +75,30 @@ function nextQuestion() {
     input.value = "";
     input.focus();
 
+    // 랜덤 음표 2개 추출
     let idx1 = Math.floor(Math.random() * notes.length);
     let idx2 = Math.floor(Math.random() * notes.length);
-    if (idx1 === idx2) idx2 = (idx1 + 2) % notes.length;
-
+    
+    // 두 음 정렬
     let low = notes[Math.min(idx1, idx2)];
     let high = notes[Math.max(idx1, idx2)];
 
     drawNote(180, low.y, low.ledger);
     drawNote(260, high.y, high.ledger);
 
+    // 반음 차 계산
     let diff = high.semitone - low.semitone;
+    
+    // 옥타브를 넘어가면(12 초과) 우선 완전8도 처리하거나 범위 제한
+    if (diff > 12) diff = 12; 
     currentAnswer = intervals[diff];
+
+    // 로그 표시
+    console.log(`--- 새 문제 생성 ---`);
+    console.log(`첫 번째 음: ${low.name} (Y: ${low.y})`);
+    console.log(`두 번째 음: ${high.name} (Y: ${high.y})`);
+    console.log(`반음 차이: ${diff}`);
+    console.log(`정답: ${currentAnswer}`);
 }
 
 function checkAnswer() {
@@ -88,13 +106,13 @@ function checkAnswer() {
     if (userAns === currentAnswer) {
         resultDisplay.innerText = "정답입니다! 🎉";
         resultDisplay.className = "correct";
-        // 정답이면 0.8초 후 자동으로 다음 문제로 이동
         setTimeout(nextQuestion, 800);
     } else {
         resultDisplay.innerText = "틀렸습니다.";
         resultDisplay.className = "wrong";
-        input.select(); // 틀렸을 때 바로 다시 입력할 수 있게 텍스트 선택
+        input.select();
     }
 }
 
+// 초기 실행
 nextQuestion();
