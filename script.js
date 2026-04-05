@@ -7,22 +7,20 @@ let currentAnswer = "";
 let isQuestionActive = true;
 
 const noteNames = ["도", "레", "미", "파", "솔", "라", "시", "도", "레", "미", "파", "솔", "라", "시", "도"];
-const startY = 150; // 좌표 안정화를 위해 약간 조정
+const startY = 150; 
 
-// 반음 거리 계산 (미-파, 시-도 로직)
 function getSemitoneDistance(lowIdx, highIdx) {
     let distance = 0;
     for (let i = lowIdx; i < highIdx; i++) {
         let step = i % 7;
-        distance += (step === 2 || step === 6) ? 1 : 2;
+        if (step === 2 || step === 6) distance += 1;
+        else distance += 2;
     }
     return distance;
 }
 
-// 동음이명 처리를 포함한 정답 판별기
 function getIntervalName(lowIdx, highIdx, semitones) {
-    const degree = highIdx - lowIdx + 1; // 도수 계산 (예: 도-파는 4도)
-
+    const degree = highIdx - lowIdx + 1;
     const intervalMap = {
         1: { 0: "완전1도" },
         2: { 1: "단2도", 2: "장2도" },
@@ -40,18 +38,14 @@ function getIntervalName(lowIdx, highIdx, semitones) {
         14: { 22: "단14도", 23: "장14도" },
         15: { 24: "완전15도" }
     };
-
-    return (intervalMap[degree] && intervalMap[degree][semitones]) || `${degree}도 (기타)`;
+    return (intervalMap[degree] && intervalMap[degree][semitones]) || `${degree}도`;
 }
 
-input.addEventListener('keypress', function(e) {
+input.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
         const val = input.value.trim();
-        if (isQuestionActive) {
-            if (val !== "") checkAnswer(); // 빈칸이면 엔터 무시
-        } else {
-            nextQuestion(); // 정답 확인 후 엔터치면 다음으로
-        }
+        if (isQuestionActive) { if (val !== "") checkAnswer(); }
+        else { nextQuestion(); }
     }
 });
 
@@ -77,14 +71,12 @@ function drawNote(x, y, idx) {
     ctx.moveTo(x + 5, y);
     ctx.lineTo(x + 5, y - 35);
     ctx.stroke();
-
-    // 덧줄 로직 (도 밑으로, 라 위로 등)
-    if (y >= 130) { // 아래쪽 덧줄 (가온 도 등)
+    if (y >= 130) {
         for (let j = 130; j <= y; j += 10) {
             ctx.beginPath(); ctx.moveTo(x - 12, j); ctx.lineTo(x + 12, j); ctx.stroke();
         }
     }
-    if (y <= 70) { // 위쪽 덧줄 (높은 라 등)
+    if (y <= 70) {
         for (let j = 70; j >= y; j -= 10) {
             ctx.beginPath(); ctx.moveTo(x - 12, j); ctx.lineTo(x + 12, j); ctx.stroke();
         }
@@ -104,7 +96,6 @@ function nextQuestion() {
 
     let lowIdx = Math.min(idx1, idx2);
     let highIdx = Math.max(idx1, idx2);
-
     let lowY = startY - (lowIdx * 5);
     let highY = startY - (highIdx * 5);
 
@@ -113,20 +104,17 @@ function nextQuestion() {
 
     let semitones = getSemitoneDistance(lowIdx, highIdx);
     currentAnswer = getIntervalName(lowIdx, highIdx, semitones);
-
-    console.log(`[문제] ${noteNames[lowIdx]}-${noteNames[highIdx]} (도수:${highIdx-lowIdx+1}, 반음:${semitones}) 정답: ${currentAnswer}`);
 }
 
 function checkAnswer() {
     const userAns = input.value.trim();
     isQuestionActive = false;
-
     if (userAns === currentAnswer) {
         resultDisplay.innerText = "정답입니다! 🎉";
         resultDisplay.style.color = "#2ecc71";
         setTimeout(nextQuestion, 800);
     } else {
-        resultDisplay.innerText = `틀렸습니다. 정답: ${currentAnswer} (엔터/버튼 클릭시 다음문제)`;
+        resultDisplay.innerText = `틀렸습니다. 정답: ${currentAnswer} (엔터로 다음)`;
         resultDisplay.style.color = "#e74c3c";
     }
 }
