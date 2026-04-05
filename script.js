@@ -3,12 +3,8 @@ const ctx = canvas.getContext('2d');
 const input = document.getElementById('answerInput');
 const resultDisplay = document.getElementById('resultMessage');
 
-let totalQuestions = 0;
-let correctCount = 0;
-let wrongCount = 0;
-let currentAnswer = "";
-let isQuestionActive = true;
-let hasAttempted = false;
+let totalQuestions = 0, correctCount = 0, wrongCount = 0;
+let currentAnswer = "", isQuestionActive = true, hasAttempted = false;
 
 const noteNames = ["도", "레", "미", "파", "솔", "라", "시", "도", "레", "미", "파", "솔", "라", "시", "도"];
 const accTypes = ["", "#", "b"];
@@ -37,8 +33,8 @@ function getBaseSemitone(idx) {
 
 function getIntervalName(degree, semitones) {
     const intervalMap = {
-        1: { 0: "완전1도" }, // 증1도 제거
-        2: { 1: "단2도", 2: "장2도", 3: "증2도" }, // 감2도 제거 (시-도b 방지용)
+        1: { 0: "완전1도" },
+        2: { 1: "단2도", 2: "장2도", 3: "증2도" },
         3: { 2: "감3도", 3: "단3도", 4: "장3도", 5: "증3도" },
         4: { 4: "감4도", 5: "완전4도", 6: "증4도" },
         5: { 6: "감5도", 7: "완전5도", 8: "증5도" },
@@ -46,12 +42,7 @@ function getIntervalName(degree, semitones) {
         7: { 9: "감7도", 10: "단7도", 11: "장7도", 12: "증7도" },
         8: { 11: "감8도", 12: "완전8도", 13: "증8도" },
         9: { 13: "단9도", 14: "장9도" },
-        10: { 15: "단10도", 16: "장10도" },
-        11: { 17: "완전11도" },
-        12: { 19: "완전12도" },
-        13: { 21: "장13도" },
-        14: { 23: "장14도" },
-        15: { 24: "완전15도" }
+        10: { 15: "단10도", 16: "장10도" }
     };
     return (intervalMap[degree] && intervalMap[degree][semitones]) || null;
 }
@@ -70,52 +61,35 @@ function drawStaff() {
 
 function drawNote(x, y, acc) {
     ctx.fillStyle = "black";
-    ctx.beginPath();
-    ctx.ellipse(x, y, 6, 4.5, Math.PI / -4, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x, y, 6, 4.5, Math.PI / -4, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.moveTo(x + 5, y); ctx.lineTo(x + 5, y - 35); ctx.stroke();
     if (acc !== "") {
         ctx.font = '24px Arial';
         ctx.fillText(acc, x - 25, y + 8);
     }
-    if (y >= 130) {
-        for (let j = 130; j <= y; j += 10) {
-            ctx.beginPath(); ctx.moveTo(x - 12, j); ctx.lineTo(x + 12, j); ctx.stroke();
-        }
-    }
-    if (y <= 70) {
-        for (let j = 70; j >= y; j -= 10) {
-            ctx.beginPath(); ctx.moveTo(x - 12, j); ctx.lineTo(x + 12, j); ctx.stroke();
-        }
-    }
+    if (y >= 130) { for (let j = 130; j <= y; j += 10) { ctx.beginPath(); ctx.moveTo(x - 12, j); ctx.lineTo(x + 12, j); ctx.stroke(); } }
+    if (y <= 70) { for (let j = 70; j >= y; j -= 10) { ctx.beginPath(); ctx.moveTo(x - 12, j); ctx.lineTo(x + 12, j); ctx.stroke(); } }
 }
 
 function nextQuestion() {
-    isQuestionActive = true;
-    hasAttempted = false;
-    totalQuestions++;
-    updateStats();
-
+    isQuestionActive = true; hasAttempted = false;
+    totalQuestions++; updateStats();
     drawStaff();
-    resultDisplay.innerText = "";
-    input.value = ""; input.focus();
+    resultDisplay.innerText = ""; input.value = ""; input.focus();
 
-    let low, high, degree, semitones, ans;
+    let n1, n2, low, high, degree, semitones, ans;
     let isValid = false;
 
-    // 문제 검증 루프 (금지 조합 필터링)
     while (!isValid) {
-        let idx1 = Math.floor(Math.random() * noteNames.length);
-        let idx2 = Math.floor(Math.random() * noteNames.length);
-        
-        // 1. 도수 1도(같은 음)는 무조건 제외
-        if (idx1 === idx2) continue;
+        // n1: 왼쪽 음표, n2: 오른쪽 음표
+        n1 = { idx: Math.floor(Math.random() * noteNames.length), acc: accTypes[Math.floor(Math.random() * 3)] };
+        n2 = { idx: Math.floor(Math.random() * noteNames.length), acc: accTypes[Math.floor(Math.random() * 3)] };
 
-        let acc1 = accTypes[Math.floor(Math.random() * 3)];
-        let acc2 = accTypes[Math.floor(Math.random() * 3)];
+        if (n1.idx === n2.idx) continue;
 
-        low = idx1 < idx2 ? {idx: idx1, acc: acc1} : {idx: idx2, acc: acc2};
-        high = idx1 < idx2 ? {idx: idx2, acc: acc2} : {idx: idx1, acc: acc1};
+        // 실제 높낮이 판별 (idx가 큰 것이 높은 음)
+        low = n1.idx < n2.idx ? n1 : n2;
+        high = n1.idx < n2.idx ? n2 : n1;
 
         semitones = getBaseSemitone(high.idx) - getBaseSemitone(low.idx);
         if (low.acc === "#") semitones -= 1;
@@ -126,41 +100,29 @@ function nextQuestion() {
         degree = high.idx - low.idx + 1;
         ans = getIntervalName(degree, semitones);
 
-        // 2. 반음 차이가 0인 2도 이상 (시-도b, 미#-파 등) 금지
         if (semitones === 0 && degree > 1) continue;
-        
-        // 3. 음정 이름이 정의되지 않았거나(null), 너무 비상식적인 음정 제외
         if (ans !== null) isValid = true;
     }
 
     currentAnswer = ans;
-    let lowY = 150 - (low.idx * 5);
-    let highY = 150 - (high.idx * 5);
-
-    drawNote(180, lowY, low.acc);
-    drawNote(280, highY, high.acc);
-    
+    // 그릴 때는 순서대로 n1(왼쪽), n2(오른쪽)
+    drawNote(180, 150 - (n1.idx * 5), n1.acc);
+    drawNote(280, 150 - (n2.idx * 5), n2.acc);
     console.log(`정답: ${currentAnswer}`);
 }
 
 function checkAnswer() {
-    const userAns = input.value.trim();
-    if (userAns === currentAnswer) {
+    if (input.value.trim() === currentAnswer) {
         if (!hasAttempted) correctCount++;
         resultDisplay.innerText = "정답입니다! 🎉";
         resultDisplay.style.color = "#2ecc71";
-        isQuestionActive = false;
-        updateStats();
+        isQuestionActive = false; updateStats();
         setTimeout(nextQuestion, 800);
     } else {
-        if (!hasAttempted) {
-            wrongCount++;
-            hasAttempted = true;
-        }
+        if (!hasAttempted) { wrongCount++; hasAttempted = true; }
         resultDisplay.innerText = `틀렸습니다. 정답: ${currentAnswer} (엔터로 다음)`;
         resultDisplay.style.color = "#e74c3c";
-        isQuestionActive = false;
-        updateStats();
+        isQuestionActive = false; updateStats();
     }
 }
 
