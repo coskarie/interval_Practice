@@ -39,7 +39,7 @@ function drawStaff() {
     }
     ctx.font = '45px serif';
     ctx.fillStyle = "black";
-    ctx.fillText('𝄞', 60, 115);
+    ctx.fillText('𝄞', 60, 100);
 }
 
 function drawNote(x, y, hasLedger) {
