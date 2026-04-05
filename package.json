@@ -1,0 +1,12 @@
+{
+  "name": "interval-practice",
+  "version": "1.0.0",
+  "description": "음정 연습 사이트",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
