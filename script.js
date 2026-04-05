@@ -1,55 +1,96 @@
 const canvas = document.getElementById('staffCanvas');
 const ctx = canvas.getContext('2d');
+const input = document.getElementById('answerInput');
+const resultDisplay = document.getElementById('resultMessage');
+
+let currentAnswer = "";
+
+// 음표 데이터 (위치와 반음 수)
+const notes = [
+    { name: "도", y: 130, semitone: 0, ledger: true },
+    { name: "레", y: 120, semitone: 2, ledger: false },
+    { name: "미", y: 110, semitone: 4, ledger: false },
+    { name: "파", y: 100, semitone: 5, ledger: false },
+    { name: "솔", y: 90, semitone: 7, ledger: false },
+    { name: "라", y: 80, semitone: 9, ledger: false },
+    { name: "시", y: 70, semitone: 11, ledger: false },
+    { name: "도", y: 60, semitone: 12, ledger: false }
+];
+
+// 음정 이름 매핑
+const intervals = {
+    0: "완전1도", 1: "단2도", 2: "장2도", 3: "단3도", 4: "장3도",
+    5: "완전4도", 6: "증4도", 7: "완전5도", 8: "단6도", 9: "장6도",
+    10: "단7도", 11: "장7도", 12: "완전8도"
+};
 
 function drawStaff() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 1;
 
-    // 1. 오선 그리기 (5줄)
-    // 간격은 10px 정도로 설정
-    const startY = 80;
-    const spacing = 10;
-
+    // 오선 그리기
     for (let i = 0; i < 5; i++) {
-        const y = startY + (i * spacing);
-        ctx.beginPath();
-        ctx.moveTo(50, y);
-        ctx.lineTo(450, y);
-        ctx.stroke();
+        let y = 70 + (i * 10);
+        ctx.beginPath(); ctx.moveTo(50, y); ctx.lineTo(450, y); ctx.stroke();
     }
 
-    // 2. 높은음자리표(Clef) 표시
-    // 실제 구현시에는 이미지를 사용하거나 폰트(Bravura 등)를 쓰는 게 예쁘지만,
-    // 우선 텍스트로 위치를 잡아둡니다.
-    ctx.font = '40px serif';
-    ctx.fillText('𝄞', 50, 125); 
+    // 높은음자리표
+    ctx.font = '45px serif';
+    ctx.fillStyle = "black";
+    ctx.fillText('𝄞', 60, 115);
 }
 
-// 음표 그리기 예시 (도 - C4)
-function drawNote() {
-    drawStaff(); // 선부터 다시 그리고
-    
-    const x = 150; // 음표 가로 위치
-    const y = 130; // '도' 위치 (오선 아래 첫 번째 덧줄 필요)
-
-    // 덧줄 그리기
+function drawNote(x, y, hasLedger) {
+    ctx.fillStyle = "black";
     ctx.beginPath();
-    ctx.moveTo(x - 10, y);
-    ctx.lineTo(x + 10, y);
-    ctx.stroke();
-
-    // 음표 머리
-    ctx.beginPath();
-    ctx.ellipse(x, y, 6, 4, Math.PI / -4, 0, Math.PI * 2);
+    ctx.ellipse(x, y, 6, 4.5, Math.PI / -4, 0, Math.PI * 2);
     ctx.fill();
 
-    // 음표 기둥
+    // 기둥
     ctx.beginPath();
     ctx.moveTo(x + 5, y);
     ctx.lineTo(x + 5, y - 35);
     ctx.stroke();
+
+    // 덧줄 (가온 도 위치)
+    if (hasLedger) {
+        ctx.beginPath(); ctx.moveTo(x - 12, y); ctx.lineTo(x + 12, y); ctx.stroke();
+    }
 }
 
-// 초기 실행
-drawStaff();
+function nextQuestion() {
+    drawStaff();
+    resultDisplay.innerText = "";
+    input.value = "";
+    input.focus();
+
+    // 랜덤으로 두 음 선택
+    let idx1 = Math.floor(Math.random() * notes.length);
+    let idx2 = Math.floor(Math.random() * notes.length);
+    
+    // 두 음 정렬 (낮은 음이 먼저 오게)
+    let low = notes[Math.min(idx1, idx2)];
+    let high = notes[Math.max(idx1, idx2)];
+
+    drawNote(180, low.y, low.ledger);
+    drawNote(260, high.y, high.ledger);
+
+    // 반음 차이 계산 후 정답 설정
+    let diff = high.semitone - low.semitone;
+    currentAnswer = intervals[diff];
+}
+
+function checkAnswer() {
+    if (input.value.trim() === currentAnswer) {
+        resultDisplay.style.color = "#2ecc71";
+        resultDisplay.innerText = "정답입니다! 🎉";
+        setTimeout(nextQuestion, 1500); // 1.5초 후 다음 문제
+    } else {
+        resultDisplay.style.color = "#e74c3c";
+        resultDisplay.innerText = `땡! 정답은 '${currentAnswer}'입니다.`;
+    }
+}
+
+// 시작
+nextQuestion();
